@@ -6,6 +6,7 @@ require("dotenv").config();
 // =======================
 // IMPORT ROUTES
 // =======================
+const reviewRoutes = require("./routes/reviewRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const authRoutes = require("./routes/authRoutes");
 const salonRoutes = require("./routes/salonRoutes");
@@ -29,6 +30,7 @@ app.use("/api/auth", authRoutes);
 
 // Salon routes
 app.use("/api/salons", salonRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // Service routes
 app.use("/api/services", serviceRoutes);

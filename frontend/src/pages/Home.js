@@ -1,94 +1,186 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import API from "../services/api";
+import { Link } from "react-router-dom";
 
 const Home = () => {
-  const navigate = useNavigate();
 
   const [salons, setSalons] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [trendingSalons, setTrendingSalons] = useState([]);
 
-  useEffect(() => {
-    fetchSalons();
-  }, []);
 
+
+  // ===============================
+  // FETCH ALL SALONS
+  // ===============================
   const fetchSalons = async () => {
+
     try {
-      setLoading(true);
 
-      // Static fallback location (Chandigarh example)
-      const lat = 30.7333;
-      const lng = 76.7794;
-
-      const res = await API.get(
-        `/salons/nearby?lat=${lat}&lng=${lng}`
-      );
+      const res = await API.get("/salons/nearby");
 
       setSalons(res.data);
-      setError(null);
 
-    } catch (err) {
-      console.error("Salon fetch error:", err);
-      setError("Failed to load salons.");
-    } finally {
-      setLoading(false);
+    } catch (error) {
+
+      console.log("Error loading salons");
+
     }
+
   };
 
+
+
+  // ===============================
+  // FETCH TRENDING SALONS
+  // ===============================
+  const fetchTrending = async () => {
+
+    try {
+
+      const res = await API.get("/salons/trending");
+
+      setTrendingSalons(res.data);
+
+    } catch (error) {
+
+      console.log("Error loading trending salons");
+
+    }
+
+  };
+
+
+
+  // ===============================
+  // PAGE LOAD
+  // ===============================
+  useEffect(() => {
+
+    fetchSalons();
+    fetchTrending();
+
+  }, []);
+
+
+
+
   return (
-    <div>
-      <h1 className="text-3xl font-semibold mb-8">
+
+    <div className="p-6 max-w-6xl mx-auto">
+
+
+      {/* TRENDING SALONS */}
+
+      <h1 className="text-2xl font-semibold mb-4">
+        🔥 Trending Salons
+      </h1>
+
+      {trendingSalons.length === 0 && (
+        <p className="mb-6 text-gray-500">
+          No trending salons yet
+        </p>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-6 mb-10">
+
+        {trendingSalons.map((salon) => (
+
+          <Link key={salon._id} to={`/salon/${salon._id}`}>
+
+            <div className="bg-white p-5 rounded shadow border-l-4 border-orange-500 hover:shadow-lg transition">
+
+              <h2 className="text-xl font-semibold">
+                {salon.name}
+              </h2>
+
+              <p className="text-gray-600 mb-2">
+                {salon.address}
+              </p>
+
+              <p className="text-yellow-500 font-semibold">
+                ⭐ {salon.averageRating?.toFixed(1) || "0"} 
+                {" "}
+                ({salon.totalReviews || 0} reviews)
+              </p>
+
+            </div>
+
+          </Link>
+
+        ))}
+
+      </div>
+
+
+
+
+      {/* NEARBY SALONS */}
+
+      <h1 className="text-3xl font-semibold mb-6">
         Nearby Salons
       </h1>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="bg-white p-6 rounded shadow-sm border">
-          Loading salons...
-        </div>
+      {salons.length === 0 && (
+        <p>No salons available</p>
       )}
 
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-100 text-red-600 p-6 rounded">
-          {error}
-        </div>
-      )}
+      <div className="grid md:grid-cols-2 gap-6">
 
-      {/* Empty State */}
-      {!loading && salons.length === 0 && (
-        <div className="bg-white p-6 rounded shadow-sm border">
-          No salons found nearby.
-        </div>
-      )}
-
-      {/* Salon Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {salons.map((salon) => (
-          <div
-            key={salon._id}
-            className="bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition"
-          >
-            <h3 className="text-lg font-medium mb-2">
-              {salon.name}
-            </h3>
 
-            <p className="text-sm text-gray-500 mb-4">
-              {salon.address}
-            </p>
+          <Link key={salon._id} to={`/salon/${salon._id}`}>
 
-            <button
-              onClick={() => navigate(`/salon/${salon._id}`)}
-              className="w-full bg-black text-white py-2 rounded-md text-sm"
-            >
-              View Services
-            </button>
-          </div>
+            <div className="bg-white p-5 rounded shadow hover:shadow-lg transition">
+
+              <h2 className="text-xl font-semibold mb-1">
+                {salon.name}
+              </h2>
+
+              <p className="text-gray-600 mb-2">
+                {salon.address}
+              </p>
+
+
+
+              <div className="flex items-center gap-2">
+
+                <span className="text-yellow-500 font-semibold">
+                  ⭐ {salon.averageRating?.toFixed(1) || "0"}
+                </span>
+
+                <span className="text-gray-500 text-sm">
+                  ({salon.totalReviews || 0} reviews)
+                </span>
+
+
+
+                {/* TOP RATED BADGE */}
+
+                {salon.averageRating >= 4.5 && (
+
+                  <span className="ml-auto text-xs bg-yellow-400 text-black px-2 py-1 rounded">
+
+                    🏆 Top Rated
+
+                  </span>
+
+                )}
+
+              </div>
+
+            </div>
+
+          </Link>
+
         ))}
+
       </div>
+
+
     </div>
+
   );
+
 };
 
 export default Home;

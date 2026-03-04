@@ -1,107 +1,297 @@
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import API from "../services/api";
 
 const SalonDetails = () => {
+
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [salon, setSalon] = useState(null);
   const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
 
-  const fetchSalonData = useCallback(async () => {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+
+
+
+  // ===============================
+  // FETCH SALON
+  // ===============================
+
+  const fetchSalon = useCallback(async () => {
+
     try {
-      setLoading(true);
 
-      // Fetch salon details (optional if backend supports)
-      const salonRes = await API.get(`/salons/${id}`);
-      setSalon(salonRes.data);
-
-      // Fetch services for this salon
-      const serviceRes = await API.get(`/services/salon/${id}`);
-      setServices(serviceRes.data);
+      const res = await API.get(`/salons/${id}`);
+      setSalon(res.data);
 
     } catch (error) {
-      console.error("Error loading salon:", error);
-    } finally {
-      setLoading(false);
+
+      console.log("Error loading salon");
+
     }
+
   }, [id]);
 
-  useEffect(() => {
-    fetchSalonData();
-  }, [fetchSalonData]);
 
-  if (loading) {
-    return (
-      <div className="bg-white p-6 rounded shadow border">
-        Loading salon details...
-      </div>
-    );
+
+  // ===============================
+  // FETCH SERVICES
+  // ===============================
+
+  const fetchServices = useCallback(async () => {
+
+    try {
+
+      const res = await API.get(`/services/salon/${id}`);
+      setServices(res.data);
+
+    } catch (error) {
+
+      console.log("Error loading services");
+
+    }
+
+  }, [id]);
+
+
+
+  // ===============================
+  // FETCH REVIEWS
+  // ===============================
+
+  const fetchReviews = useCallback(async () => {
+
+    try {
+
+      const res = await API.get(`/reviews/salon/${id}`);
+      setReviews(res.data);
+
+    } catch (error) {
+
+      console.log("Error loading reviews");
+
+    }
+
+  }, [id]);
+
+
+
+  // ===============================
+  // SUBMIT REVIEW
+  // ===============================
+
+  const submitReview = async () => {
+
+    if (!rating) {
+      alert("Please select rating");
+      return;
+    }
+
+    try {
+
+      await API.post("/reviews/add", {
+        salonId: id,
+        rating,
+        comment
+      });
+
+      alert("Review submitted");
+
+      setRating(0);
+      setComment("");
+
+      fetchReviews();
+
+    } catch (error) {
+
+      alert("Error submitting review");
+
+    }
+
+  };
+
+
+
+  // ===============================
+  // PAGE LOAD
+  // ===============================
+
+  useEffect(() => {
+
+    fetchSalon();
+    fetchServices();
+    fetchReviews();
+
+  }, [fetchSalon, fetchServices, fetchReviews]);
+
+
+
+  if (!salon) {
+
+    return <div className="p-6">Loading salon...</div>;
+
   }
 
+
+
   return (
-    <div>
-      {/* Salon Info */}
-      {salon && (
-        <div className="bg-white border rounded-xl p-6 shadow-sm mb-8">
-          <h1 className="text-3xl font-semibold mb-2">
-            {salon.name}
-          </h1>
 
-          <p className="text-gray-500 mb-2">
-            {salon.address}
-          </p>
+    <div className="p-6 max-w-4xl mx-auto">
 
-          <p className="text-sm text-gray-400">
-            {salon.isApproved ? "Approved Salon" : "Pending Approval"}
-          </p>
-        </div>
-      )}
 
-      {/* Services */}
-      <h2 className="text-2xl font-semibold mb-6">
-        Available Services
-      </h2>
+      {/* SALON INFO */}
 
-      {services.length === 0 && (
-        <div className="bg-white p-6 rounded shadow border">
-          No services available.
-        </div>
-      )}
+      <div className="bg-white p-6 rounded shadow mb-6">
 
-      <div className="grid md:grid-cols-2 gap-6">
+        <h1 className="text-2xl font-semibold mb-2">
+          {salon.name}
+        </h1>
+
+        <p className="text-gray-600">
+          {salon.address}
+        </p>
+
+        <p className="mt-2">
+
+          ⭐ {salon.averageRating?.toFixed(1) || "0"} 
+          ({salon.totalReviews || 0} reviews)
+
+        </p>
+
+      </div>
+
+
+
+      {/* SERVICES */}
+
+      <div className="bg-white p-6 rounded shadow mb-6">
+
+        <h2 className="text-lg font-semibold mb-4">
+          Services
+        </h2>
+
+        {services.length === 0 && (
+          <p>No services available</p>
+        )}
+
         {services.map((service) => (
+
           <div
             key={service._id}
-            className="bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition"
+            className="border p-3 mb-3 rounded flex justify-between"
           >
-            <h3 className="text-lg font-medium mb-2">
-              {service.name}
-            </h3>
 
-            <p className="text-gray-500 mb-2">
-              ₹{service.price}
-            </p>
-
-            <p className="text-gray-400 mb-4">
-              {service.duration} mins
-            </p>
+            <span>
+              {service.name} — ₹{service.price} — {service.duration} min
+            </span>
 
             <button
-              onClick={() =>
-                navigate(`/book/${id}/${service._id}`)
-              }
-              className="w-full bg-black text-white py-2 rounded-md"
+              className="bg-black text-white px-3 py-1 rounded"
             >
-              Book Now
+              Book
             </button>
+
           </div>
+
         ))}
+
       </div>
+
+
+
+      {/* REVIEW FORM */}
+
+      <div className="bg-white p-6 rounded shadow mb-6">
+
+        <h2 className="text-lg font-semibold mb-4">
+          Leave a Review
+        </h2>
+
+        <div className="flex gap-2 mb-4">
+
+          {[1,2,3,4,5].map((star) => (
+
+            <span
+              key={star}
+              onClick={() => setRating(star)}
+              className={`cursor-pointer text-2xl ${
+                rating >= star
+                  ? "text-yellow-500"
+                  : "text-gray-400"
+              }`}
+            >
+
+              ★
+
+            </span>
+
+          ))}
+
+        </div>
+
+        <textarea
+          placeholder="Write your review..."
+          className="border p-2 w-full mb-3"
+          value={comment}
+          onChange={(e)=>setComment(e.target.value)}
+        />
+
+        <button
+          onClick={submitReview}
+          className="bg-black text-white px-4 py-2 rounded"
+        >
+
+          Submit Review
+
+        </button>
+
+      </div>
+
+
+
+      {/* REVIEWS LIST */}
+
+      <div className="bg-white p-6 rounded shadow">
+
+        <h2 className="text-lg font-semibold mb-4">
+          Customer Reviews
+        </h2>
+
+        {reviews.length === 0 && (
+          <p>No reviews yet.</p>
+        )}
+
+        {reviews.map((review) => (
+
+          <div
+            key={review._id}
+            className="border p-3 mb-3 rounded"
+          >
+
+            <p className="font-semibold">
+              {review.userId?.name}
+            </p>
+
+            <p className="text-yellow-500">
+              {"★".repeat(review.rating)}
+            </p>
+
+            <p>
+              {review.comment}
+            </p>
+
+          </div>
+
+        ))}
+
+      </div>
+
     </div>
+
   );
+
 };
 
 export default SalonDetails;
